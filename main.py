@@ -1,0 +1,72 @@
+from backports import configparser
+import os
+import paho.mqtt.client as mqtt
+import logging
+from time import sleep
+
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+from scapy.all import *
+
+mqttc = mqtt.Client()
+
+defaultconfig = '''[MQTT]
+# The hostname or IP of the MQTT Server
+host =
+# The Port of the MQTT Server (Default: 1883)
+#port =
+# Is a Username and Password required? (Default: false)
+#auth = True
+# Username (If required)
+#user =
+# Password (if required)
+#pass =
+
+[Buttons]
+# For every line, list the MAC of the button, and the MQTT topic to publish to.
+01:23:45:67:89:ab = example/example_topic'''
+
+def arp_display(pkt):
+    topic = ''
+    foundmac = None
+    if pkt.haslayer(ARP):
+        if pkt[ARP].op == 1: #who-has (request)
+            i = 0
+            for j in macs:
+                if (macs[i] == pkt[ARP].hwsrc):
+                    foundmac = i
+                i += 1
+    if not (foundmac == None): # If we have actually found a matching mac
+        print 'Found ARP for MAC %s, sending to topic %s' % (macs[foundmac], topics[foundmac])
+        mqttc.publish(topics[foundmac], "ON") # Both to simulate button press
+        mqttc.publish(topics[foundmac], "OFF")
+
+
+if __name__ == '__main__':
+    if not (os.path.isfile('./dash.cfg')):
+        print('Warn: Config file does not exist, writing example config. Please configure and try again.')
+        c = open('./dash.cfg', 'w')
+        c.write(defaultconfig)
+        c.close()
+        exit(1)
+
+    config = configparser.ConfigParser(delimiters=('='))
+    config.read('./dash.cfg')
+    hostname = config['MQTT'].get('host')
+    port = config['MQTT'].get('port')
+    authrequired = config['MQTT'].getboolean('auth', False)
+    if (authrequired):
+        username = config['MQTT'].get('user')
+        password = config['MQTT'].get('pass')
+
+    macs = []
+    topics = []
+    for option, value in config.items('Buttons'):
+        macs.append(option)
+        topics.append(value)
+        print 'Importing mac %s with topic %s' % (option,value)
+
+    if (authrequired):
+        mqttc.username_pw_set(username,password=password)
+    mqttc.connect(hostname)
+    mqttc.loop_start()
+    sniff(prn=arp_display, filter="arp", store=0, count=0)
