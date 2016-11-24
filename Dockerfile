@@ -7,6 +7,6 @@ RUN apk add --no-cache python py-pip \
  && mkdir dash \
  && ln -s /config/dash.cfg /dash/dash.cfg
 
-ADD main.py /config
+ADD main.py /dash/main.py
 
 CMD ["python","/dash/main.py"]
