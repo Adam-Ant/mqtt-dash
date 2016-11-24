@@ -3,7 +3,7 @@ MAINTAINER "Adam Dodman <adam.dodman@gmx.com>"
 
 RUN apk add --no-cache python py-pip \
  && pip install --upgrade pip \
- && pip install paho-mqtt scapy \
+ && pip install paho-mqtt scapy configparser \
  && mkdir dash \
  && ln -s /config/dash.cfg /dash/dash.cfg
 
