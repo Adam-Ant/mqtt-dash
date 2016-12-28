@@ -2,6 +2,7 @@ from backports import configparser
 import os
 import paho.mqtt.client as mqtt
 import logging
+import argparse
 from time import sleep
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
@@ -42,15 +43,29 @@ def arp_display(pkt):
 
 
 if __name__ == '__main__':
-    if not (os.path.isfile('./dash.cfg')):
+    argparser = argparse.ArgumentParser(prog='MQTT-Dash',description='Send MQTT events when dash nuttons are pressed.')
+    argparser.add_argument('-c','--config',help='Specify directory for config file and database')
+    cmdargs = argparser.parse_args()
+
+    if not (cmdargs.config):
+        filepath = '.'
+    else:
+        filepath = cmdargs.config
+
+    if not (os.path.isdir(filepath)):
+        print('Error: Config directory does not exist. Exiting...')
+        exit(1)
+
+    if not (os.path.isfile(filepath + '/dash.cfg')):
         print('Warn: Config file does not exist, writing example config. Please configure and try again.')
-        c = open('./dash.cfg', 'w')
+        c = open(filepath + '/dash.cfg', 'w')
         c.write(defaultconfig)
         c.close()
         exit(1)
 
+
     config = configparser.ConfigParser(delimiters=('='))
-    config.read('./dash.cfg')
+    config.read(filepath + '/dash.cfg')
     hostname = config['MQTT'].get('host')
     port = config['MQTT'].get('port')
     authrequired = config['MQTT'].getboolean('auth', False)
