@@ -4,6 +4,7 @@ import paho.mqtt.client as mqtt
 import logging
 import argparse
 from time import sleep
+import ssl
 
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 from scapy.all import *
@@ -21,6 +22,12 @@ host =
 #user =
 # Password (if required)
 #pass =
+# SSL required? (Default: False)
+# Uses TLSv1.2
+#ssl = True
+# CA Cert location (Default: /etc/ssl/certs/ca-certificates.crt)
+# This is sufficient for brokers using LetsEncrypt
+#certpath =
 
 [Buttons]
 # For every line, list the MAC of the button, and the MQTT topic to publish to.
@@ -69,6 +76,8 @@ if __name__ == '__main__':
     hostname = config['MQTT'].get('host')
     port = config['MQTT'].get('port')
     authrequired = config['MQTT'].getboolean('auth', False)
+    sslrequired = config['MQTT'].getboolean('ssl', False)
+    ca_certs = config['MQTT'].get('certpath', "/etc/ssl/certs/ca-certificates.crt")
     if (authrequired):
         username = config['MQTT'].get('user')
         password = config['MQTT'].get('pass')
@@ -82,6 +91,8 @@ if __name__ == '__main__':
 
     if (authrequired):
         mqttc.username_pw_set(username,password=password)
+    if (sslrequired):
+        mqttc.tls_set( ca_certs, tls_version=ssl.PROTOCOL_TLSv1_2 )
     mqttc.connect(hostname)
     mqttc.loop_start()
     sniff(prn=arp_display, filter="arp", store=0, count=0)
